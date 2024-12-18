@@ -16,8 +16,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
             "phone",
             "dob",
             "gender",
-            "role",
-        ]
+            "role"        ]
         extra_kwargs = {
             "password": {"write_only": True},
         }

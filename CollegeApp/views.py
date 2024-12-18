@@ -76,7 +76,7 @@ class UserRegistrationView(APIView):
                     
                     # Return success response after sending OTP
                     return Response(
-                        {"message": f"{role.capitalize()} registered successfully.", "user_id": user.id, "otp_sent": "OTP sent successfully."},
+                        {"user_id": user.id, "otp_sent": "OTP sent successfully."},
                         status=status.HTTP_201_CREATED,
                     )
                 except Exception as email_error:
@@ -215,7 +215,8 @@ class UserLoginView(APIView):
                         'access': str(refresh.access_token),
                         'email': user.email,
                         'role':user.role,
-                        'id':user.id
+                        'id':user.id,
+                        'full_name':user.full_name
                     },
                     status=status.HTTP_200_OK
                 )
