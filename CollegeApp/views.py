@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from .serializers import(
     UserProfileSerializer,HODSerializer,
-    FacultySerializer,StudentSerializer
+    FacultySerializer,StudentSerializer,BaseUserSerializer
 )
 from .models import HOD,Faculty,Student
 from django.contrib.auth import get_user_model
@@ -25,6 +25,10 @@ from rest_framework.exceptions import PermissionDenied,NotFound
 
 import datetime
 from django.utils import timezone
+
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.generics import ListAPIView
+
 
 
 # Create your views here.
@@ -77,7 +81,7 @@ class UserRegistrationView(APIView):
                     # Return success response after sending OTP
                     return Response(
                         {"user_id": user.id, "otp_sent": "OTP sent successfully."},
-                        status=status.HTTP_201_CREATED,
+                        status=status.HTTP_200_OK,
                     )
                 except Exception as email_error:
                     return Response(
@@ -208,18 +212,33 @@ class UserLoginView(APIView):
 
             # If user is authenticated, generate tokens
             if user:
+                # Generate tokens
                 refresh = RefreshToken.for_user(user)
-                return Response(
-                    {
-                        'refresh': str(refresh),
-                        'access': str(refresh.access_token),
-                        'email': user.email,
-                        'role':user.role,
-                        'id':user.id,
-                        'full_name':user.full_name
-                    },
-                    status=status.HTTP_200_OK
-                )
+
+                # Common user data
+                response_data = {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                    'email': user.email,
+                    'role': user.role,
+                    'id': user.id,
+                    'full_name': user.full_name,
+                    'phone': user.phone,
+                    'dob': user.dob,
+                    'gender': user.gender,
+                    # 'photo':user.photo
+                }
+
+                # Add role-specific data
+                if user.role == 'Faculty' or user.role == 'HOD':
+                    response_data['department'] = user.department.name if user.department else None
+
+                if user.role == 'Student':
+                    response_data['department'] = user.department.name if user.department else None
+                    response_data['course'] = user.course.name if user.course else None
+                    response_data['batch'] = user.batch.name if user.batch else None
+
+                return Response(response_data, status=status.HTTP_200_OK)
 
             # If authentication fails, return an error response
             return Response(
@@ -233,6 +252,17 @@ class UserLoginView(APIView):
                 {'error': f'An unexpected error occurred: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+# class UserCreateView(APIView):
+#     parser_classes = [MultiPartParser, FormParser]
+
+#     def post(self, request, *args, **kwargs):
+#         serializer = BaseUserSerializer(data=request.data)
+#         if serializer.is_valid():
+#             user = serializer.save()
+#             return Response({"message": "User created successfully!"}, status=201)
+#         return Response(serializer.errors, status=400)
 
 
 
@@ -289,8 +319,35 @@ class UserDeleteView(APIView):
         
 
 
+class HODListView(APIView):
+    permission_classes = [AllowAny]
 
-    
+    def get(self, request):
+        try:
+            hods = HOD.objects.all()
+            serializer = HODSerializer(hods, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
+        except Exception as e:
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class FacultyListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        try:
+            faculties = Faculty.objects.all()
+            serializer = FacultySerializer(faculties, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 

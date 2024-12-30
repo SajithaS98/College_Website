@@ -21,6 +21,33 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser',True)
 
         return self.create_user(email, password, **extra_fields)
+    
+
+class Department(models.Model):
+    department_name = models.CharField(max_length=150,null=True,blank=True)  # Should be a CharField, not a ForeignKey
+    description = models.TextField(blank=True, null=True)
+
+    # def __str__(self):
+    #     return self.department_name
+
+
+class Course(models.Model):
+    course_name = models.CharField(max_length=150,null=True,blank=True)  
+    description = models.TextField(null=True, blank=True)
+
+    # def __str__(self):
+    #     return self.course_name
+
+
+class Batch(models.Model):
+    batch_name = models.CharField(max_length=150,null=True,blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+
+    # def __str__(self):
+    #     return self.batch_name
+
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
@@ -30,21 +57,22 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ('student','Student'),
     ]
 
-
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=150, blank=True, null=True)
     phone = models.IntegerField(blank=True, null=True)
     dob = models.DateField(blank=True, null=True)
-    gender = models.CharField(max_length=10, choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')],null=True,blank=True)
-    role = models.CharField(max_length=10,choices = ROLE_CHOICES)
+    gender = models.CharField(max_length=10, choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')], null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
+    batch = models.ForeignKey(Batch, on_delete=models.CASCADE, null=True, blank=True)
+    photo = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
-    is_varified = models.BooleanField(null=True,blank=True,default=False)
-    otp = models.PositiveIntegerField(null=True,blank=True)
+    is_verified = models.BooleanField(null=True, blank=True, default=False)
+    otp = models.PositiveIntegerField(null=True, blank=True)
     otp_expiry = models.DateTimeField(blank=True, null=True)
-    
-
 
     objects = CustomUserManager()
 
@@ -54,19 +82,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
-class Department(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True,null=True)
-
-class Course(models.Model):
-    name = models.CharField(max_length=100,null=True,blank=True)
-    description = models.TextField(null=True,blank=True)
-
-class Batch(models.Model):
-    name = models.CharField(max_length=100,null=True,blank=True)
-    course = models.ForeignKey(Course,on_delete=models.CASCADE)
-    start_date = models.DateField(blank=True, null=True)
-    end_date = models.DateField(blank=True, null=True)
+    def save(self, *args, **kwargs):
+        # Ensure fields are reset for roles that don't need them
+        if self.role not in ['hod', 'faculty', 'student']:
+            self.department = None
+        if self.role != 'student':
+            self.course = None
+            self.batch = None
+        super().save(*args, **kwargs)
 
 
 class Faculty(models.Model):
@@ -84,7 +107,7 @@ class HOD(models.Model):
     courses = models.ManyToManyField(Course,blank=True)
     batches = models.ManyToManyField(Batch,blank=True)
     photo = models.ImageField(upload_to='hod_photos/', blank=True, null=True)
-    faculty = models.ForeignKey(Faculty,on_delete=models.CASCADE,null=True)
+    # faculty = models.ForeignKey(Faculty,on_delete=models.CASCADE,null=True)
 
 
 class Student(models.Model):
