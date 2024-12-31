@@ -9,35 +9,15 @@ CustomUser = get_user_model()
 class BaseUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = [
-            "email",
-            "password",
-            "role",
-            "full_name",
-            "phone",
-            "dob",
-            "gender",
-        ]
+        fields = ["email","password","role","full_name","phone","dob","gender",]
         extra_kwargs = {
             "password": {"write_only": True}
         }
 
     def create(self, validated_data):
-        # Handle password
         password = validated_data.pop("password")
-        
-        # Handle photo (optional)
-        # photo = validated_data.pop("photo", None)
-
-        # Create user
         user = CustomUser.objects.create_user(**validated_data)
         user.set_password(password)
-        
-        # Set photo if provided
-        # if photo:
-        #     user.photo = photo
-        
-        # Save the user
         user.save()
         return user
 
@@ -89,32 +69,43 @@ class HODSerializer(BaseUserSerializer):
 
 
 
-class FacultySerializer(BaseUserSerializer):
-    department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
-
-    class Meta(BaseUserSerializer.Meta):
-        fields = BaseUserSerializer.Meta.fields + ["department"]
-
-    def create(self, validated_data):
-        user = super().create(validated_data)  # Create the CustomUser
-        # No need to pop() department, it's now a ForeignKey on CustomUser
-        Faculty.objects.create(user=user, department=validated_data['department'])
-        return user
-
-
-class StudentSerializer(BaseUserSerializer):
-    department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
-    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())
-    batch = serializers.PrimaryKeyRelatedField(queryset=Batch.objects.all())
-
-    class Meta(BaseUserSerializer.Meta):
-        fields = BaseUserSerializer.Meta.fields + ["department", "course", "batch"]
+class FacultySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Faculty
+        fields = ['id', 'user', 'name', 'address', 'department', 'courses', 'batches', 'photo']
 
     def create(self, validated_data):
-        user = super().create(validated_data)  # Create the CustomUser
-        # No need to pop() department, course, and batch, they are ForeignKeys on CustomUser
-        Student.objects.create(user=user, department=validated_data['department'], course=validated_data['course'], batch=validated_data['batch'])
-        return user
+        department = validated_data.pop('department')  
+        user = validated_data.pop('user') 
+        user_instance = CustomUser.objects.create(**user)
+        user_instance.set_password(user['password'])
+        user_instance.save()
+        faculty = Faculty.objects.create(user=user_instance, department=department, **validated_data)
+        return faculty 
+    
+
+class StudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ['id', 'user', 'name', 'department', 'course', 'batch', 'photo', 'address']
+
+    def create(self, validated_data):
+        # Extract the department and user field separately
+        department = validated_data.pop('department')
+        user = validated_data.pop('user')
+
+        # Create the user instance (assumes `create_user` exists for custom user)
+        user_instance = CustomUser.objects.create_user(**user)  # Replace with `create_user` if available
+        user_instance.set_password(user['password'])
+        user_instance.save()
+
+        # Create the student instance and associate it with the created user and department
+        student = Student.objects.create(user=user_instance, department=department, **validated_data)
+        return student
+            
+
+
+
 
     
 

@@ -93,12 +93,19 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 class Faculty(models.Model):
+    id = models.AutoField(primary_key=True)
     user = models.OneToOneField(CustomUser,on_delete=models.CASCADE)
     name = models.CharField(max_length=100,null=True,blank=True)
+    address = models.TextField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
+    updated_at = models. DateTimeField(auto_now_add=True,null=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     courses = models.ManyToManyField(Course,blank=True)
     batches = models.ManyToManyField(Batch,blank=True)
     photo = models.ImageField(upload_to='faculty_photos/', blank=True, null=True)
+
+    def __str__(self):
+        return self.name 
 
 class HOD(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -111,12 +118,14 @@ class HOD(models.Model):
 
 
 class Student(models.Model):
+    id = models.AutoField(primary_key=True)
     user = models.OneToOneField(CustomUser,on_delete=models.CASCADE)
     name = models.CharField(max_length=100,null=True,blank=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     course = models.ForeignKey(Course,on_delete=models.CASCADE)
     batch = models.ForeignKey(Batch,on_delete=models.CASCADE,null=True)
     photo = models.ImageField(upload_to='student_photos/', blank=True, null=True)
+    address = models.TextField(null=True)
 
 class Assignment(models.Model):
     title = models.CharField(max_length=100,null=True,blank=True)

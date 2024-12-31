@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    UserRegistrationView,UserLoginView,UserProfileView,UserDeleteView,VerifyOTPView,ResendOTPView,HODListView,FacultyListView
+    UserRegistrationView,UserLoginView,UserProfileView,UserDeleteView,VerifyOTPView,ResendOTPView,HODListView,FacultyListView,StudentListView
     
 )
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
@@ -14,7 +14,8 @@ urlpatterns = [
     path('delete_profile/', UserDeleteView.as_view(), name='user-delete'),
 
     path('list-hods/', HODListView.as_view(), name='list-hods'),
-    path('facultylist/', FacultyListView.as_view(), name='facultylist'),
+    path('falist/', FacultyListView.as_view(), name='falist'),
+    path('stlist/', StudentListView.as_view(), name='stlist'),
 
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
