@@ -116,8 +116,13 @@ class Faculty(models.Model):
     batches = models.ManyToManyField(Batch,blank=True)
     photo = models.ImageField(upload_to='faculty_photos/', blank=True, null=True)
 
+<<<<<<< HEAD
     # def __str__(self):
     #     return self.name 
+=======
+    def __str__(self):
+        return self.name 
+>>>>>>> master
 
 class HOD(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -137,6 +142,7 @@ class Student(models.Model):
     course = models.ForeignKey(Course,on_delete=models.CASCADE)
     batch = models.ForeignKey(Batch,on_delete=models.CASCADE,null=True)
     photo = models.ImageField(upload_to='student_photos/', blank=True, null=True)
+    address = models.TextField(null=True)
 
 class Assignment(models.Model):
     title = models.CharField(max_length=100,null=True,blank=True)

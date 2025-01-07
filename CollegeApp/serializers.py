@@ -69,6 +69,7 @@ class HODSerializer(BaseUserSerializer):
 
 
 
+<<<<<<< HEAD
 class FacultySerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email")
     password = serializers.CharField(source="user.password", write_only=True)
@@ -106,6 +107,46 @@ class FacultySerializer(serializers.ModelSerializer):
         # Handle user data
         user_data = validated_data.pop('user', {})
         user_instance = instance.user
+=======
+
+class FacultySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Faculty
+        fields = ['id', 'user', 'name', 'address', 'department', 'courses', 'batches', 'photo']
+
+    def create(self, validated_data):
+        department = validated_data.pop('department')  
+        user = validated_data.pop('user') 
+        user_instance = CustomUser.objects.create(**user)
+        user_instance.set_password(user['password'])
+        user_instance.save()
+        faculty = Faculty.objects.create(user=user_instance, department=department, **validated_data)
+        return faculty 
+    
+
+class StudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ['id', 'user', 'name', 'department', 'course', 'batch', 'photo', 'address']
+
+    def create(self, validated_data):
+        # Extract the department and user field separately
+        department = validated_data.pop('department')
+        user = validated_data.pop('user')
+
+        # Create the user instance (assumes `create_user` exists for custom user)
+        user_instance = CustomUser.objects.create_user(**user)  # Replace with `create_user` if available
+        user_instance.set_password(user['password'])
+        user_instance.save()
+
+        # Create the student instance and associate it with the created user and department
+        student = Student.objects.create(user=user_instance, department=department, **validated_data)
+        return student
+            
+
+
+
+>>>>>>> master
 
         # Check if the email is being updated and if it already exists in another user
         if 'email' in user_data and user_data['email'] != user_instance.email:
