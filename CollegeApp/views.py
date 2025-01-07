@@ -6,10 +6,9 @@ from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from .serializers import(
-    UserProfileSerializer,HODSerializer,
-    FacultySerializer,StudentSerializer,BaseUserSerializer
+    HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer
 )
-from .models import HOD,Faculty,Student
+from .models import HOD,Faculty,Student,Course,Department,CustomUser
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
 
@@ -28,6 +27,9 @@ from django.utils import timezone
 
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import ListAPIView
+
+from .permissions import IsAdminOrHOD,IsAdminOrSelf,IsHOD,IsFaculty
+
 
 
 
@@ -55,12 +57,15 @@ class UserRegistrationView(APIView):
             elif role == 'student':
                 serializer = StudentSerializer(data=request.data)
             else:
-                return Response({"error": "Invalid role provided. Valid roles are 'hod', 'faculty', 'student'."},
+                return Response({"error": "Invalid role provided. Valid roles are 'admin', 'hod', 'faculty', 'student'."},
                                 status=status.HTTP_400_BAD_REQUEST)
 
             # Validate and save data
             if serializer.is_valid():
-                user = serializer.save()
+                role_object = serializer.save()
+
+                # Access the related CustomUser object
+                user = role_object.user
 
                 # Generate OTP
                 otp = random.randint(100000, 999999)
@@ -77,7 +82,7 @@ class UserRegistrationView(APIView):
                     message = f'Your OTP is {otp}. It is valid for 5 minutes.'
                     recipient_email = user.email
                     send_mail(subject, message, settings.EMAIL_HOST_USER, [recipient_email], fail_silently=False)
-                    
+
                     # Return success response after sending OTP
                     return Response(
                         {"user_id": user.id, "otp_sent": "OTP sent successfully."},
@@ -91,12 +96,8 @@ class UserRegistrationView(APIView):
 
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
         except Exception as e:
-            return Response(
-                {"error": f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ResendOTPView(APIView):
@@ -157,6 +158,8 @@ class ResendOTPView(APIView):
 
         
 class VerifyOTPView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         try:
             # Extract email and OTP from the request
@@ -254,94 +257,76 @@ class UserLoginView(APIView):
             )
 
 
-# class UserCreateView(APIView):
-#     parser_classes = [MultiPartParser, FormParser]
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = BaseUserSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.save()
-#             return Response({"message": "User created successfully!"}, status=201)
-#         return Response(serializer.errors, status=400)
-
-
-
-class UserProfileView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get_profile(self, user):
-        """Helper function to get the user's profile based on their role."""
-        try:
-            if user.role == 'hod':
-                return HOD.objects.get(user=user), HODSerializer
-            elif user.role == 'faculty':
-                return Faculty.objects.get(user=user), FacultySerializer
-            elif user.role == 'student':
-                return Student.objects.get(user=user), StudentSerializer
-            else:
-                return user, UserProfileSerializer
-        except (HOD.DoesNotExist, Faculty.DoesNotExist, Student.DoesNotExist):
-            raise NotFound("Profile not found for the user.")
-
-    def get(self, request):
-        try:
-            user = request.user
-            profile, serializer_class = self.get_profile(user)
-            serializer = serializer_class(profile)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(
-                {"error": f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-
-    
-
-class UserDeleteView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def delete(self, request):
-        try:
-            user = request.user
-            # Perform user deletion
-            user.delete()
-            return Response(
-                {'message': 'User deleted successfully'},
-                status=status.HTTP_204_NO_CONTENT
-            )
-        except Exception as e:
-            return Response(
-                {'error': f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        
-
-
 class HODListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
         try:
-            hods = HOD.objects.all()
+            hods = HOD.objects.select_related('user', 'department').prefetch_related('courses', 'batches').all()
             serializer = HODSerializer(hods, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
-
         except Exception as e:
             return Response(
                 {"error": f"An unexpected error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+class FacultyListCreateView(APIView):
+    permission_classes = [IsHOD]  # Only allow HOD to access this view
 
-class FacultyListView(APIView):
+    def get(self, request):
+        # List all faculties
+        faculties = Faculty.objects.all()
+        serializer = FacultySerializer(faculties, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        # Add a new faculty member
+        serializer = FacultySerializer(data=request.data)
+        if serializer.is_valid():
+            faculty = serializer.save()
+            return Response(FacultySerializer(faculty).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FacultyUpdateDeleteView(APIView):
+    permission_classes = [IsHOD]  # Only allow HOD to access this view
+
+    def get_object(self, pk):
+        try:
+            return Faculty.objects.get(pk=pk)
+        except Faculty.DoesNotExist:
+            return None
+
+    def put(self, request, pk):
+        # Update faculty details
+        faculty = self.get_object(pk)
+        if faculty is None:
+            return Response({"error": "Faculty not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = FacultySerializer(faculty, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        # Delete faculty record
+        faculty = self.get_object(pk)
+        if faculty is None:
+            return Response({"error": "Faculty not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        faculty.delete()
+        return Response({"message": "Faculty deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        
+
+class StudentListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
         try:
-            faculties = Faculty.objects.all()
-            serializer = FacultySerializer(faculties, many=True)
+            students = Student.objects.all()
+            serializer = StudentSerializer(students, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -366,3 +351,146 @@ class StudentListView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+class CourseListView(APIView):
+    def get(self, request):
+        try:
+            courses = Course.objects.all()
+
+            if not courses:
+                raise NotFound("No courses found.")
+
+            serializer = CourseSerializer(courses, many=True)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Course.DoesNotExist:
+            return Response(
+                {"detail": "Courses not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        
+
+class DepartmentListView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        try:
+            departments = Department.objects.all()
+
+            if not departments:
+                raise NotFound("No departments found.")
+
+            serializer = DepartmentSerializer(departments, many=True)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Department.DoesNotExist:
+            return Response(
+                {"detail": "Departments not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        
+
+
+class DepartmentView(APIView):
+    permission_classes = [IsAdminOrHOD]
+
+    def get(self, request, pk=None):
+        """
+        Retrieve a single department or list all departments.
+        """
+        try:
+            if pk:
+                department = Department.objects.get(pk=pk)
+                serializer = DepartmentSerializer(department)
+            else:
+                departments = Department.objects.all()
+                serializer = DepartmentSerializer(departments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Department.DoesNotExist:
+            return Response({"detail": "Department not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request):
+        """
+        Create a new department.
+        """
+        serializer = DepartmentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk):
+        """
+        Update an existing department.
+        """
+        try:
+            department = Department.objects.get(pk=pk)
+            serializer = DepartmentSerializer(department, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Department.DoesNotExist:
+            return Response({"detail": "Department not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, pk):
+        """
+        Delete a department.
+        """
+        try:
+            department = Department.objects.get(pk=pk)
+            department.delete()
+            return Response({"detail": "Department deleted successfully."}, status=status.HTTP_200_OK)
+        except Department.DoesNotExist:
+            return Response({"detail": "Department not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+
+    
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminOrSelf]
+
+    def get(self, request, pk=None):
+        try:
+            user = (
+                CustomUser.objects.get(pk=pk) if pk else request.user
+            )  # Admin/HOD can view by `pk`, others see their own profile
+            serializer = CustomUserSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, pk=None):
+        try:
+            user = (
+                CustomUser.objects.get(pk=pk) if pk else request.user
+            )  # Admin/HOD can edit by `pk`, others edit their own profile
+
+            serializer = CustomUserSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
+
+    
+
+
+
+        

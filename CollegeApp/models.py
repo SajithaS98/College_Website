@@ -23,20 +23,33 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
     
 
+
+class Course(models.Model):
+    id = models.AutoField(primary_key=True)
+    course_name = models.CharField(max_length=150,null=True,blank=True)  
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
+    updated_at = models. DateTimeField(auto_now_add=True,null=True)
+
+    
+
+    # def __str__(self):
+    #     return self.course_name
+
+    
+
 class Department(models.Model):
-    department_name = models.CharField(max_length=150,null=True,blank=True)  # Should be a CharField, not a ForeignKey
+    id = models.AutoField(primary_key=True)
+    department_name = models.CharField(max_length=150,null=True,blank=True) 
     description = models.TextField(blank=True, null=True)
+    courses = models.ManyToManyField(Course,blank=True)
+    photo = models.ImageField(upload_to="department_photos/", blank=True, null=True)
+
+
 
     # def __str__(self):
     #     return self.department_name
 
-
-class Course(models.Model):
-    course_name = models.CharField(max_length=150,null=True,blank=True)  
-    description = models.TextField(null=True, blank=True)
-
-    # def __str__(self):
-    #     return self.course_name
 
 
 class Batch(models.Model):
@@ -79,8 +92,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['role']
 
-    def __str__(self):
-        return self.email
+    # def __str__(self):
+    #     return self.email
 
     def save(self, *args, **kwargs):
         # Ensure fields are reset for roles that don't need them
@@ -90,7 +103,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             self.course = None
             self.batch = None
         super().save(*args, **kwargs)
-
 
 class Faculty(models.Model):
     id = models.AutoField(primary_key=True)
@@ -104,8 +116,13 @@ class Faculty(models.Model):
     batches = models.ManyToManyField(Batch,blank=True)
     photo = models.ImageField(upload_to='faculty_photos/', blank=True, null=True)
 
+<<<<<<< HEAD
+    # def __str__(self):
+    #     return self.name 
+=======
     def __str__(self):
         return self.name 
+>>>>>>> master
 
 class HOD(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
