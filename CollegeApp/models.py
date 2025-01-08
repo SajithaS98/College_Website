@@ -55,8 +55,8 @@ class Department(models.Model):
 class Batch(models.Model):
     batch_name = models.CharField(max_length=150,null=True,blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    start_date = models.DateField(blank=True, null=True)
-    end_date = models.DateField(blank=True, null=True)
+    start_date = models.IntegerField(blank=True, null=True)
+    end_date = models.IntegerField(blank=True, null=True)
 
     # def __str__(self):
     #     return self.batch_name
@@ -116,13 +116,8 @@ class Faculty(models.Model):
     batches = models.ManyToManyField(Batch,blank=True)
     photo = models.ImageField(upload_to='faculty_photos/', blank=True, null=True)
 
-<<<<<<< HEAD
     # def __str__(self):
     #     return self.name 
-=======
-    def __str__(self):
-        return self.name 
->>>>>>> master
 
 class HOD(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -174,10 +169,50 @@ class Note(models.Model):
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
+class Subject(models.Model):
+    name = models.CharField(max_length=120)
+    faculty = models.ForeignKey(Faculty,on_delete=models.CASCADE,)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class FacultyAttendance(models.Model):
+    faculty = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'faculty'})
+    attendance_date = models.DateField()
+    status = models.CharField(max_length=10, choices=[('present', 'Present'), ('absent', 'Absent')])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    recorded_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="recorded_faculty_attendance")
 
 class Attendance(models.Model):
-    name = models.CharField(max_length=100,null=True,blank=True)
-    attendance = models.CharField(max_length=10,choices=[('Present','present'),('Absent','absent')],default='Prsent',null=True,blank=True)
+    batch = models.ForeignKey(Batch, on_delete=models.DO_NOTHING,null=True)
+    subject = models.ForeignKey(Subject, on_delete=models.DO_NOTHING,null=True)
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
+    updated_at = models.DateTimeField(auto_now=True,null=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="created_attendance",null=True)  # HOD or Faculty
+
+class StudentAttendance(models.Model):
+    attendance = models.ForeignKey(Attendance, on_delete=models.CASCADE, related_name='student_attendance')
+    student = models.ForeignKey(CustomUser, on_delete=models.DO_NOTHING, limit_choices_to={'role': 'student'})
+    status = models.CharField(max_length=10, choices=[('present', 'Present'), ('absent', 'Absent')])
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
+    updated_at = models.DateTimeField(auto_now=True,null=True)
+
+class FacultyAttendanceReport(models.Model):
+    faculty = models.ForeignKey(Faculty, on_delete=models.DO_NOTHING)
+    attendance = models.ForeignKey(Attendance, on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, choices=[('present', 'Present'), ('absent', 'Absent')])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class StudentAttendanceReport(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.DO_NOTHING)
+    attendance = models.ForeignKey(Attendance, on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, choices=[('present', 'Present'), ('absent', 'Absent')])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 
 
     

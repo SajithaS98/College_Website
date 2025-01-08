@@ -54,3 +54,11 @@ class IsFaculty(BasePermission):
         if request.user.is_authenticated and request.user.role == 'faculty':
             return True
         return False
+    
+class IsHODOrFaculty(BasePermission):
+    """
+    Allows access only to users with the role of HOD or Faculty.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role in ['hod', 'faculty']
+
