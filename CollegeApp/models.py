@@ -137,6 +137,7 @@ class Student(models.Model):
     course = models.ForeignKey(Course,on_delete=models.CASCADE)
     batch = models.ForeignKey(Batch,on_delete=models.CASCADE,null=True)
     photo = models.ImageField(upload_to='student_photos/', blank=True, null=True)
+    address = models.TextField(null=True)
 
 class Assignment(models.Model):
     title = models.CharField(max_length=100,null=True,blank=True)

@@ -3,6 +3,7 @@ from .views import (
     UserRegistrationView,UserLoginView,ProfileView,VerifyOTPView,ResendOTPView,HODListView,FacultyListCreateView,FacultyUpdateDeleteView,
     StudentListView,CourseListView,DepartmentListView,DepartmentView,StudentAttendanceView,FacultyAttendanceView,StudentAttendanceReportView,
     FacultyAttendanceReportView
+    
 )
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 
