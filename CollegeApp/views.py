@@ -6,9 +6,12 @@ from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from .serializers import(
-    HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer
+    HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
+    AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer
 )
-from .models import HOD,Faculty,Student,Course,Department,CustomUser
+from .models import (HOD,Faculty,Student,Course,Department,CustomUser,Attendance,StudentAttendance,FacultyAttendance,StudentAttendanceReport,
+                     FacultyAttendanceReport
+)
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
 
@@ -26,9 +29,9 @@ import datetime
 from django.utils import timezone
 
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView,get_object_or_404
 
-from .permissions import IsAdminOrHOD,IsAdminOrSelf,IsHOD,IsFaculty
+from .permissions import IsAdminOrHOD,IsAdminOrSelf,IsHOD,IsFaculty,IsHODOrFaculty
 
 
 
@@ -440,10 +443,9 @@ class DepartmentView(APIView):
             return Response({"detail": "Department not found."}, status=status.HTTP_404_NOT_FOUND)
         
 
-    
 
 class ProfileView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrSelf]
+    permission_classes = [IsAdminOrSelf]
 
     def get(self, request, pk=None):
         try:
@@ -468,14 +470,104 @@ class ProfileView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except CustomUser.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
-
-
-
-
+        
     
 
+class FacultyAttendanceView(APIView):
+    permission_classes = [IsHOD]  # Restrict to HOD users
+
+    def post(self, request):
+        serializer = FacultyAttendanceSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        try:
+            faculty_attendance = FacultyAttendance.objects.all()
+            serializer = FacultyAttendanceSerializer(faculty_attendance, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request, pk):
+        try:
+            attendance = FacultyAttendance.objects.get(pk=pk)
+        except FacultyAttendance.DoesNotExist:
+            return Response({"error": "Faculty attendance record not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = FacultyAttendanceSerializer(
+            attendance, data=request.data, partial=True, context={'request': request}
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+class StudentAttendanceView(APIView):
+    permission_classes = [IsHODOrFaculty]  # Restrict to HOD and Faculty
+
+    def post(self, request):
+        serializer = AttendanceSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        if request.user.role == 'hod':
+            attendance = Attendance.objects.all()
+        else:
+            attendance = Attendance.objects.filter(created_by=request.user)
+        serializer = AttendanceSerializer(attendance, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        try:
+            attendance = Attendance.objects.get(pk=pk)
+        except Attendance.DoesNotExist:
+            return Response({"error": "Attendance record not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AttendanceSerializer(attendance, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FacultyAttendanceReportView(APIView):
+    permission_classes = [IsHOD]  # You can use a specific permission class here
+
+    def get(self, request):
+        reports = FacultyAttendanceReport.objects.all()
+        serializer = FacultyAttendanceReportSerializer(reports, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = FacultyAttendanceReportSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
+    
+
+class StudentAttendanceReportView(APIView):
+    permission_classes = [IsHODOrFaculty]  # You can use a specific permission class here
+
+    def get(self, request):
+        reports = StudentAttendanceReport.objects.all()
+        serializer = StudentAttendanceReportSerializer(reports, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = StudentAttendanceReportSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
         

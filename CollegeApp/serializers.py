@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import CustomUser,HOD,Faculty,Student,Course,Batch,Department
+from .models import (CustomUser,HOD,Faculty,Student,Course,Batch,Department,Attendance,StudentAttendance,FacultyAttendance,FacultyAttendanceReport,
+                     StudentAttendanceReport
+)
 from rest_framework.exceptions import ValidationError
 
 
@@ -217,10 +219,96 @@ class CustomUserSerializer(serializers.ModelSerializer):
             data.pop('batch', None)
 
         return data
-
-
-
-
     
 
+class StudentAttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentAttendance
+        fields = ['id', 'student', 'status']
 
+class AttendanceSerializer(serializers.ModelSerializer):
+    student_attendance = StudentAttendanceSerializer(many=True, write_only=True)
+    student_attendance_read = StudentAttendanceSerializer(many=True, read_only=True, source='student_attendance')
+
+    class Meta:
+        model = Attendance
+        fields = ['id', 'batch', 'subject', 'date', 'created_at', 'updated_at', 'created_by', 'student_attendance', 'student_attendance_read']
+        read_only_fields = ['created_by']
+
+    def create(self, validated_data):
+        student_attendance_data = validated_data.pop('student_attendance')
+        request_user = self.context['request'].user
+        attendance = Attendance.objects.create(**validated_data, created_by=request_user)
+
+        for student_data in student_attendance_data:
+            StudentAttendance.objects.create(attendance=attendance, **student_data)
+
+        return attendance
+
+    def update(self, instance, validated_data):
+        # Update the main Attendance fields
+        instance.batch = validated_data.get('batch', instance.batch)
+        instance.subject = validated_data.get('subject', instance.subject)
+        instance.date = validated_data.get('date', instance.date)
+        instance.save()
+
+        # Update or create student attendance records
+        student_attendance_data = validated_data.pop('student_attendance', [])
+        if student_attendance_data:
+            for student_data in student_attendance_data:
+                student_id = student_data.get('student')
+                status = student_data.get('status')
+
+                # Find the student attendance record or create a new one
+                student_attendance = StudentAttendance.objects.filter(
+                    attendance=instance,
+                    student_id=student_id
+                ).first()
+
+                # If a student attendance record exists, update the status
+                if student_attendance:
+                    student_attendance.status = status
+                    student_attendance.save()
+                else:
+                    # Create a new record if one does not exist
+                    StudentAttendance.objects.create(attendance=instance, student_id=student_id, status=status)
+
+        return instance
+
+class FacultyAttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FacultyAttendance
+        fields = ['id', 'faculty', 'attendance_date', 'status', 'recorded_by']
+        read_only_fields = ['recorded_by']
+
+    def create(self, validated_data):
+        request_user = self.context['request'].user  # Get the logged-in user
+        validated_data['recorded_by'] = request_user
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Use .get() to safely extract values from validated_data
+        faculty = validated_data.get('faculty', instance.faculty)
+        attendance_date = validated_data.get('attendance_date', instance.attendance_date)
+        status = validated_data.get('status', instance.status)
+        
+        # Update fields
+        instance.faculty = faculty
+        instance.attendance_date = attendance_date
+        instance.status = status
+        
+        # Save the instance
+        instance.save()
+        return instance
+    
+class FacultyAttendanceReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FacultyAttendanceReport
+        fields = ['id', 'faculty', 'attendance', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+class StudentAttendanceReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentAttendanceReport
+        fields = ['id', 'student', 'attendance', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
