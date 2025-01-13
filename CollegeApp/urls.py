@@ -11,6 +11,7 @@ urlpatterns = [
     path('resend_otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('verify_otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('login/', UserLoginView.as_view(), name='user-login'),
+    
     path('profile/<int:pk>/', ProfileView.as_view(), name='profile-detail'),
 
     path('hodlist/', HODListCreateView.as_view(), name='hodlist'),
