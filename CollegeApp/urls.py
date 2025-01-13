@@ -1,8 +1,8 @@
 from django.urls import path
 from .views import (
-    UserRegistrationView,UserLoginView,ProfileView,VerifyOTPView,ResendOTPView,HODListView,FacultyListCreateView,FacultyUpdateDeleteView,
+    UserRegistrationView,UserLoginView,ProfileView,VerifyOTPView,ResendOTPView,FacultyListCreateView,FacultyUpdateDeleteView,
     StudentListCreateView,StudentUpdateDeleteView,CourseListView,DepartmentListView,DepartmentView,StudentAttendanceView,FacultyAttendanceView,
-    StudentAttendanceReportView,FacultyAttendanceReportView   
+    StudentAttendanceReportView,FacultyAttendanceReportView,HODListCreateView,HODUpdateDeleteView  
 )
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 
@@ -13,11 +13,15 @@ urlpatterns = [
     path('login/', UserLoginView.as_view(), name='user-login'),
     path('profile/<int:pk>/', ProfileView.as_view(), name='profile-detail'),
 
-    path('list-hods/', HODListView.as_view(), name='list-hods'),
+    path('hodlist/', HODListCreateView.as_view(), name='hodlist'),
+    path('hodlist/<int:pk>/', HODUpdateDeleteView.as_view(), name='hod-update-delete'),
+
     path('falist/', FacultyListCreateView.as_view(), name='falist'),
     path('falist/<int:pk>/', FacultyUpdateDeleteView.as_view(), name='faculty-update-delete'),
+
     path('stlist/', StudentListCreateView.as_view(), name='stlist'),
     path('stlist/<int:pk>/', StudentUpdateDeleteView.as_view(), name='student-update-delete'),
+
     path('courses-list/', CourseListView.as_view(), name='course-list'),
     
     path('departments-list/', DepartmentListView.as_view(), name='department-list'),
@@ -27,11 +31,11 @@ urlpatterns = [
     path('student_attendance/', StudentAttendanceView.as_view(), name='student-attendance-list-create'),
     path('student_attendance/<int:pk>/', StudentAttendanceView.as_view(), name='student-attendance-detail'),
 
-    path('faculty-attendance-reports/', FacultyAttendanceReportView.as_view(), name='faculty-attendance-report-list'),
-    path('student-attendance-reports/', StudentAttendanceReportView.as_view(), name='student-attendance-report-list'),
-
     path('faculty-attendance/', FacultyAttendanceView.as_view(), name='faculty-attendance-list-create'),
     path('faculty-attendance/<int:pk>/', FacultyAttendanceView.as_view(), name='faculty-attendance-detail-update'),
+
+    path('faculty-attendance-reports/', FacultyAttendanceReportView.as_view(), name='faculty-attendance-report-list'),
+    path('student-attendance-reports/', StudentAttendanceReportView.as_view(), name='student-attendance-report-list'),
 
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

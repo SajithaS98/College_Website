@@ -26,49 +26,72 @@ class BaseUserSerializer(serializers.ModelSerializer):
         return user
 
 
-class HODSerializer(BaseUserSerializer):
+class HODSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source="user.email")
+    password = serializers.CharField(source="user.password", write_only=True)
+    role = serializers.CharField(source="user.role", read_only=True, default="faculty")
+    full_name = serializers.CharField(source="user.full_name")
+    phone = serializers.CharField(source="user.phone")
+    dob = serializers.DateField(source="user.dob")
+    gender = serializers.CharField(source="user.gender")
     department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
-    courses = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(), many=True, required=False)
-    batches = serializers.PrimaryKeyRelatedField(queryset=Batch.objects.all(), many=True, required=False)
-    # photo = serializers.ImageField(required=False)  # Uncomment if you want to handle photo
+    photo = serializers.ImageField(required=False)
 
-    class Meta(BaseUserSerializer.Meta):
-        fields = BaseUserSerializer.Meta.fields + ['department', 'courses', 'batches', 'photo']
+    class Meta:
+        model = HOD
+        fields = ["id", "email", "password", "full_name", "phone", "dob", "gender", "department","photo", "role"]
 
     def create(self, validated_data):
-        # First, handle the CustomUser part (email, password, role, etc.)
-        password = validated_data.pop('password')
-        # photo = validated_data.pop('photo', None)  # Uncomment if you're handling photo
+        # Extract user data
+        user_data = validated_data.pop("user")
+        department = validated_data.pop("department")
 
-        # Create CustomUser instance with the role set to "hod"
-        user = CustomUser.objects.create_user(**validated_data)
-        user.set_password(password)
-        user.role = "hod"  # Explicitly set the role for HOD
+        # Check if the email already exists
+        if CustomUser.objects.filter(email=user_data["email"]).exists():
+            raise ValidationError({"email": "This email is already registered."})
+
+        # Create user instance
+        user = CustomUser.objects.create_user(**user_data)
+        user.role = "hod"
         user.save()
 
-        # Handle the HOD-specific fields (department, courses, batches, etc.)
-        hod = HOD.objects.create(
-            user=user,
-            department=validated_data['department'],
-        )
-
-        # If courses or batches are provided, associate them with the HOD
-        if 'courses' in validated_data:
-            hod.courses.set(validated_data['courses'])
-        if 'batches' in validated_data:
-            hod.batches.set(validated_data['batches'])
-
-        # Handle photo if provided (you can use this if you have a photo field)
-        # if photo:
-        #     user.photo = photo
-        #     user.save()
-
-        # Save the HOD instance
-        hod.save()
-
-        # Return the HOD instance, not the user instance
+        # Create faculty instance
+        hod = HOD.objects.create(user=user, department=department, **validated_data)
         return hod
 
+    def update(self, instance, validated_data):
+        # Handle user data
+        user_data = validated_data.pop('user', {})
+        user_instance = instance.user
+
+        # Check if the email is being updated and if it already exists in another user
+        if 'email' in user_data and user_data['email'] != user_instance.email:
+            if CustomUser.objects.filter(email=user_data['email']).exists():
+                raise ValidationError({"email": "This email is already registered."})
+
+        # Update the user fields
+        for attr, value in user_data.items():
+            setattr(user_instance, attr, value)
+
+        if 'password' in user_data:
+            user_instance.set_password(user_data['password'])  # Ensure password is hashed
+
+        user_instance.save()
+
+        # Update hod fields
+        if 'department' in validated_data:
+            instance.department = validated_data['department']
+        if 'hod' in validated_data:
+            instance.hod = validated_data['hod']
+        if 'courses' in validated_data:
+            instance.courses.set(validated_data['courses'])
+        if 'batches' in validated_data:
+            instance.batches.set(validated_data['batches'])
+        if 'photo' in validated_data:
+            instance.photo = validated_data['photo']
+
+        instance.save()
+        return instance
 
 
 class FacultySerializer(serializers.ModelSerializer):

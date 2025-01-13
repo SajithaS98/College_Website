@@ -260,19 +260,55 @@ class UserLoginView(APIView):
             )
 
 
-class HODListView(APIView):
-    permission_classes = [AllowAny]
+class HODListCreateView(APIView):
+    permission_classes = [IsHOD] 
 
     def get(self, request):
+        # List all faculties
+        hodies = HOD.objects.all()
+        serializer = HODSerializer(hodies, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        # Add a new faculty member
+        serializer = HODSerializer(data=request.data)
+        if serializer.is_valid():
+            hod = serializer.save()
+            return Response(HODSerializer(hod).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class HODUpdateDeleteView(APIView):
+    permission_classes = [IsHOD]  # Only allow HOD to access this view
+
+    def get_object(self, pk):
         try:
-            hods = HOD.objects.select_related('user', 'department').prefetch_related('courses', 'batches').all()
-            serializer = HODSerializer(hods, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(
-                {"error": f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return HOD.objects.get(pk=pk)
+        except HOD.DoesNotExist:
+            return None
+
+    def put(self, request, pk):
+        # Update faculty details
+        hod = self.get_object(pk)
+        if hod is None:
+            return Response({"error": "HOD not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = HODSerializer(hod, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        # Delete faculty record
+        hod = self.get_object(pk)
+        if hod is None:
+            return Response({"error": "HOD not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        hod.delete()
+        return Response({"message": "HOD deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
 
 class FacultyListCreateView(APIView):
     permission_classes = [IsHOD]  # Only allow HOD to access this view
