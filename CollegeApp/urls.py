@@ -1,9 +1,8 @@
 from django.urls import path
 from .views import (
     UserRegistrationView,UserLoginView,ProfileView,VerifyOTPView,ResendOTPView,HODListView,FacultyListCreateView,FacultyUpdateDeleteView,
-    StudentListView,CourseListView,DepartmentListView,DepartmentView,StudentAttendanceView,FacultyAttendanceView,StudentAttendanceReportView,
-    FacultyAttendanceReportView
-    
+    StudentListCreateView,StudentUpdateDeleteView,CourseListView,DepartmentListView,DepartmentView,StudentAttendanceView,FacultyAttendanceView,
+    StudentAttendanceReportView,FacultyAttendanceReportView   
 )
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 
@@ -17,7 +16,8 @@ urlpatterns = [
     path('list-hods/', HODListView.as_view(), name='list-hods'),
     path('falist/', FacultyListCreateView.as_view(), name='falist'),
     path('falist/<int:pk>/', FacultyUpdateDeleteView.as_view(), name='faculty-update-delete'),
-    path('stlist/', StudentListView.as_view(), name='stlist'),
+    path('stlist/', StudentListCreateView.as_view(), name='stlist'),
+    path('stlist/<int:pk>/', StudentUpdateDeleteView.as_view(), name='student-update-delete'),
     path('courses-list/', CourseListView.as_view(), name='course-list'),
     
     path('departments-list/', DepartmentListView.as_view(), name='department-list'),

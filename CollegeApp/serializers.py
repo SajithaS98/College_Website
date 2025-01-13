@@ -140,41 +140,72 @@ class FacultySerializer(serializers.ModelSerializer):
     
 
 class StudentSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source="user.email")
+    password = serializers.CharField(source="user.password", write_only=True)
+    role = serializers.CharField(source="user.role", read_only=True, default="student")
+    full_name = serializers.CharField(source="user.full_name")
+    phone = serializers.CharField(source="user.phone")
+    dob = serializers.DateField(source="user.dob")
+    gender = serializers.CharField(source="user.gender")
     department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
-    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(), required=True)
-    batch = serializers.PrimaryKeyRelatedField(queryset=Batch.objects.all(), required=True)
-    photo = serializers.ImageField(required=False)
-
+    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())
+    batch = serializers.PrimaryKeyRelatedField(queryset=Batch.objects.all(), required=False)
+    
     class Meta:
-        model = CustomUser
-        fields = ['email', 'full_name', 'phone', 'role', 'dob', 'gender', 'password', 'department', 'course', 'batch', 'photo']
-        extra_kwargs = {
-            'password': {'write_only': True},
-        }
+        model = Student
+        fields = ["email", "password", "full_name", "phone", "dob", "gender", "department", "course", "batch", "role"]
 
     def create(self, validated_data):
-        # Extract password and create the CustomUser instance
-        password = validated_data.pop('password')
+        user_data = validated_data.pop("user")
+        department = validated_data.pop("department")
+        course = validated_data.pop("course")
+        batch = validated_data.pop("batch", None)
 
-        # Create the CustomUser instance
-        user = CustomUser.objects.create_user(**validated_data)
-        user.set_password(password)
+        # Check if the email already exists
+        if CustomUser.objects.filter(email=user_data["email"]).exists():
+            raise ValidationError({"email": "This email is already registered."})
+
+        # Create user instance
+        user = CustomUser.objects.create_user(**user_data)
+        user.role = "student"
         user.save()
 
-        # Create the Student instance and link it to the user
-        student = Student.objects.create(
-            user=user,
-            department=validated_data['department'],
-            course=validated_data['course'],
-            batch=validated_data['batch'],
-        )
-
-        # Handle the optional photo field if provided
-        if 'photo' in validated_data:
-            student.photo = validated_data['photo']
-            student.save()
-
+        # Create student instance
+        student = Student.objects.create(user=user, department=department, course=course, batch=batch, **validated_data)
         return student
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop("user", {})
+        user_instance = instance.user
+
+        # Handle email uniqueness check
+        if 'email' in user_data and user_data['email'] != user_instance.email:
+            if CustomUser.objects.filter(email=user_data['email']).exists():
+                raise ValidationError({"email": "This email is already registered."})
+
+        # Update the user fields
+        for attr, value in user_data.items():
+            setattr(user_instance, attr, value)
+
+        if 'password' in user_data:
+            user_instance.set_password(user_data['password'])  # Ensure password is hashed
+
+        user_instance.save()
+
+        # Update student fields
+        if 'department' in validated_data:
+            instance.department = validated_data['department']
+        if 'course' in validated_data:
+            instance.course = validated_data['course']
+        if 'batch' in validated_data:
+            instance.batch = validated_data['batch']
+        if 'photo' in validated_data:
+            instance.photo = validated_data['photo']
+        if 'address' in validated_data:
+            instance.address = validated_data['address']
+
+        instance.save()
+        return instance
 
             
 

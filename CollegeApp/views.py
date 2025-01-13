@@ -323,36 +323,55 @@ class FacultyUpdateDeleteView(APIView):
         return Response({"message": "Faculty deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         
 
-class StudentListView(APIView):
-    permission_classes = [AllowAny]
+class StudentListCreateView(APIView):
+    # Allow both HOD and Faculty to access this view
+    permission_classes = [IsHOD | IsFaculty]  # HOD or Faculty can access
 
     def get(self, request):
+        # List all students
+        students = Student.objects.all()
+        serializer = StudentSerializer(students, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        # Add a new student
+        serializer = StudentSerializer(data=request.data)
+        if serializer.is_valid():
+            student = serializer.save()
+            return Response(StudentSerializer(student).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StudentUpdateDeleteView(APIView):
+    # Allow both HOD and Faculty to access this view
+    permission_classes = [IsHOD | IsFaculty]  # HOD or Faculty can access
+
+    def get_object(self, pk):
         try:
-            students = Student.objects.all()
-            serializer = StudentSerializer(students, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Student.objects.get(pk=pk)
+        except Student.DoesNotExist:
+            return None
 
-        except Exception as e:
-            return Response(
-                {"error": f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        
+    def put(self, request, pk):
+        # Update student details
+        student = self.get_object(pk)
+        if student is None:
+            return Response({"error": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
 
-class StudentListView(APIView):
-    permission_classes = [AllowAny]
+        serializer = StudentSerializer(student, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def get(self, request):
-        try:
-            students = Student.objects.all()
-            serializer = StudentSerializer(students, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+    def delete(self, request, pk):
+        # Delete student record
+        student = self.get_object(pk)
+        if student is None:
+            return Response({"error": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        except Exception as e:
-            return Response(
-                {"error": f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        student.delete()
+        return Response({"message": "Student deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
 class CourseListView(APIView):
     def get(self, request):
