@@ -31,7 +31,7 @@ from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import ListAPIView,get_object_or_404
 
-from .permissions import IsAdminOrHOD,IsAdminOrSelf,IsHOD,IsFaculty,IsHODOrFaculty
+from .permissions import IsAdminOrHOD,IsAdminOrSelf,IsHOD,IsFaculty,IsHODOrFaculty,IsAdmin
 
 
 
@@ -261,7 +261,7 @@ class UserLoginView(APIView):
 
 
 class HODListCreateView(APIView):
-    permission_classes = [IsHOD] 
+    permission_classes = [IsAdmin] 
 
     def get(self, request):
         # List all faculties
@@ -279,7 +279,7 @@ class HODListCreateView(APIView):
     
 
 class HODUpdateDeleteView(APIView):
-    permission_classes = [IsHOD]  # Only allow HOD to access this view
+    permission_classes = [IsAdmin]  # Only allow HOD to access this view
 
     def get_object(self, pk):
         try:
@@ -311,7 +311,7 @@ class HODUpdateDeleteView(APIView):
 
 
 class FacultyListCreateView(APIView):
-    permission_classes = [IsHOD]  # Only allow HOD to access this view
+    permission_classes = [IsAdmin,IsHOD]  # Only allow HOD to access this view
 
     def get(self, request):
         # List all faculties
@@ -329,7 +329,7 @@ class FacultyListCreateView(APIView):
 
 
 class FacultyUpdateDeleteView(APIView):
-    permission_classes = [IsHOD]  # Only allow HOD to access this view
+    permission_classes = [IsAdmin,IsHOD]  # Only allow HOD to access this view
 
     def get_object(self, pk):
         try:
@@ -361,7 +361,7 @@ class FacultyUpdateDeleteView(APIView):
 
 class StudentListCreateView(APIView):
     # Allow both HOD and Faculty to access this view
-    permission_classes = [IsHOD | IsFaculty]  # HOD or Faculty can access
+    permission_classes = [IsAdmin,IsHOD,IsFaculty]  # HOD or Faculty can access
 
     def get(self, request):
         # List all students
@@ -380,7 +380,7 @@ class StudentListCreateView(APIView):
 
 class StudentUpdateDeleteView(APIView):
     # Allow both HOD and Faculty to access this view
-    permission_classes = [IsHOD | IsFaculty]  # HOD or Faculty can access
+    permission_classes = [IsAdmin,IsHOD,IsFaculty]  # HOD or Faculty can access
 
     def get_object(self, pk):
         try:
@@ -410,6 +410,8 @@ class StudentUpdateDeleteView(APIView):
         return Response({"message": "Student deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
 class CourseListView(APIView):
+    permission_classes = [IsAdmin]
+
     def get(self, request):
         try:
             courses = Course.objects.all()
@@ -460,7 +462,7 @@ class DepartmentListView(APIView):
 
 
 class DepartmentView(APIView):
-    permission_classes = [IsAdminOrHOD]
+    permission_classes = [IsAdmin,IsHOD]
 
     def get(self, request, pk=None):
         """
@@ -578,7 +580,7 @@ class FacultyAttendanceView(APIView):
 
 
 class StudentAttendanceView(APIView):
-    permission_classes = [IsHODOrFaculty]  # Restrict to HOD and Faculty
+    permission_classes = [IsHOD,IsFaculty]  # Restrict to HOD and Faculty
 
     def post(self, request):
         serializer = AttendanceSerializer(data=request.data, context={'request': request})
@@ -609,7 +611,7 @@ class StudentAttendanceView(APIView):
 
 
 class FacultyAttendanceReportView(APIView):
-    permission_classes = [IsHOD]  # You can use a specific permission class here
+    permission_classes = [IsHOD,IsFaculty]  # You can use a specific permission class here
 
     def get(self, request):
         reports = FacultyAttendanceReport.objects.all()
@@ -625,7 +627,7 @@ class FacultyAttendanceReportView(APIView):
     
 
 class StudentAttendanceReportView(APIView):
-    permission_classes = [IsHODOrFaculty]  # You can use a specific permission class here
+    permission_classes = [IsHOD,IsFaculty]  # You can use a specific permission class here
 
     def get(self, request):
         reports = StudentAttendanceReport.objects.all()
