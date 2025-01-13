@@ -1,4 +1,6 @@
 from rest_framework.permissions import BasePermission
+from rest_framework.exceptions import PermissionDenied
+
 
 
 class IsAdmin(BasePermission):
@@ -20,27 +22,29 @@ class IsAdminOrHOD(BasePermission):
             request.user.is_staff or request.user.role == 'hod'
         )
 
-class IsAdminOrSelf(BasePermission):
+class CanUpdateProfile(BasePermission):
     """
-    Custom permission to allow only admins, HODs, and the user themselves to view or update profiles.
+    Custom permission to allow only specific users to update profiles based on role.
     """
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user.is_authenticated:
-            return False
-
-        # Allow if the user is an admin or HOD
-        if request.user.is_staff or request.user.role == 'hod':
-            return True  # Admin or HOD can view or update all profiles
-
-        # Allow if the user is viewing or updating their own profile
-        user_id = view.kwargs.get('pk')  # Assuming 'pk' is passed in the URL
-        if str(request.user.id) == str(user_id):  # Match user ID with the pk in the URL
+    def has_object_permission(self, request, view, obj):
+        # Allow Admin to update any profile
+        if request.user.is_admin:
             return True
 
-        # Disallow access for other cases
-        return False
+        # Allow HOD to update Faculty and HOD profiles
+        if request.user.role == 'hod' and obj.role in ['faculty', 'hod']:
+            return True
 
+        # Allow Faculty to update Faculty and Student profiles
+        if request.user.role == 'faculty' and obj.role in ['faculty', 'student']:
+            return True
+
+        # Block users from updating their own profiles
+        if request.user == obj:
+            return False
+
+        # Otherwise, deny access
+        return False
 
 class IsHOD(BasePermission):
     """

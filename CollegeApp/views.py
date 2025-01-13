@@ -31,7 +31,7 @@ from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import ListAPIView,get_object_or_404
 
-from .permissions import IsAdminOrHOD,IsAdminOrSelf,IsHOD,IsFaculty,IsHODOrFaculty,IsAdmin
+from .permissions import IsAdminOrHOD,IsHOD,IsFaculty,IsHODOrFaculty,IsAdmin,CanUpdateProfile
 
 
 
@@ -311,7 +311,7 @@ class HODUpdateDeleteView(APIView):
 
 
 class FacultyListCreateView(APIView):
-    permission_classes = [IsAdmin,IsHOD]  # Only allow HOD to access this view
+    permission_classes = [IsAdmin | IsHOD]  # Only allow HOD to access this view
 
     def get(self, request):
         # List all faculties
@@ -329,7 +329,7 @@ class FacultyListCreateView(APIView):
 
 
 class FacultyUpdateDeleteView(APIView):
-    permission_classes = [IsAdmin,IsHOD]  # Only allow HOD to access this view
+    permission_classes = [IsAdmin | IsHOD]  # Only allow HOD to access this view
 
     def get_object(self, pk):
         try:
@@ -361,7 +361,7 @@ class FacultyUpdateDeleteView(APIView):
 
 class StudentListCreateView(APIView):
     # Allow both HOD and Faculty to access this view
-    permission_classes = [IsAdmin,IsHOD,IsFaculty]  # HOD or Faculty can access
+    permission_classes = [IsAdmin | IsHOD | IsFaculty]  # HOD or Faculty can access
 
     def get(self, request):
         # List all students
@@ -380,7 +380,7 @@ class StudentListCreateView(APIView):
 
 class StudentUpdateDeleteView(APIView):
     # Allow both HOD and Faculty to access this view
-    permission_classes = [IsAdmin,IsHOD,IsFaculty]  # HOD or Faculty can access
+    permission_classes = [IsAdmin | IsHOD | IsFaculty]  # HOD or Faculty can access
 
     def get_object(self, pk):
         try:
@@ -408,6 +408,7 @@ class StudentUpdateDeleteView(APIView):
 
         student.delete()
         return Response({"message": "Student deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    
 
 class CourseListView(APIView):
     permission_classes = [IsAdmin]
@@ -462,7 +463,7 @@ class DepartmentListView(APIView):
 
 
 class DepartmentView(APIView):
-    permission_classes = [IsAdmin,IsHOD]
+    permission_classes = [IsAdmin | IsHOD]
 
     def get(self, request, pk=None):
         """
@@ -517,29 +518,41 @@ class DepartmentView(APIView):
 
 
 class ProfileView(APIView):
-    permission_classes = [IsAdminOrSelf]
+    permission_classes = [CanUpdateProfile]  # Use the custom permission class for update
 
     def get(self, request, pk=None):
         try:
-            user = (
-                CustomUser.objects.get(pk=pk) if pk else request.user
-            )  # Admin/HOD can view by `pk`, others see their own profile
+            # Allow users to view their own profile
+            if request.user.role == 'student':
+                if pk != str(request.user.pk):
+                    return Response({"detail": "Students can only view their own profiles."}, status=status.HTTP_403_FORBIDDEN)
+
+            # Admin and HOD can view any profile, others can only view their own
+            user = CustomUser.objects.get(pk=pk) if pk else request.user
             serializer = CustomUserSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
+
         except CustomUser.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
     def put(self, request, pk=None):
         try:
-            user = (
-                CustomUser.objects.get(pk=pk) if pk else request.user
-            )  # Admin/HOD can edit by `pk`, others edit their own profile
+            user = CustomUser.objects.get(pk=pk)
 
-            serializer = CustomUserSerializer(user, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # Block users from updating their own profiles
+            if request.user == user:
+                return Response({"detail": "You cannot update your own profile."}, status=status.HTTP_403_FORBIDDEN)
+
+            # Admin, HOD, and Faculty can update profiles based on role restrictions
+            if request.user.is_admin or (request.user.role == 'hod' and user.role in ['faculty', 'hod']) or (request.user.role == 'faculty' and user.role in ['faculty', 'student']):
+                serializer = CustomUserSerializer(user, data=request.data, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response({"detail": "You do not have permission to update this profile."}, status=status.HTTP_403_FORBIDDEN)
+
         except CustomUser.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         
@@ -580,7 +593,7 @@ class FacultyAttendanceView(APIView):
 
 
 class StudentAttendanceView(APIView):
-    permission_classes = [IsHOD,IsFaculty]  # Restrict to HOD and Faculty
+    permission_classes = [IsHOD | IsFaculty]  # Restrict to HOD and Faculty
 
     def post(self, request):
         serializer = AttendanceSerializer(data=request.data, context={'request': request})
@@ -611,7 +624,7 @@ class StudentAttendanceView(APIView):
 
 
 class FacultyAttendanceReportView(APIView):
-    permission_classes = [IsHOD,IsFaculty]  # You can use a specific permission class here
+    permission_classes = [IsHOD | IsFaculty]  # You can use a specific permission class here
 
     def get(self, request):
         reports = FacultyAttendanceReport.objects.all()
@@ -627,7 +640,7 @@ class FacultyAttendanceReportView(APIView):
     
 
 class StudentAttendanceReportView(APIView):
-    permission_classes = [IsHOD,IsFaculty]  # You can use a specific permission class here
+    permission_classes = [IsHOD | IsFaculty]  # You can use a specific permission class here
 
     def get(self, request):
         reports = StudentAttendanceReport.objects.all()
