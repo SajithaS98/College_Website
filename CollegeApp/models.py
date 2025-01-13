@@ -120,13 +120,18 @@ class Faculty(models.Model):
     #     return self.name 
 
 class HOD(models.Model):
+    id = models.AutoField(primary_key=True)
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     name = models.CharField(max_length=100,null=True,blank=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     courses = models.ManyToManyField(Course,blank=True)
     batches = models.ManyToManyField(Batch,blank=True)
     photo = models.ImageField(upload_to='hod_photos/', blank=True, null=True)
-    # faculty = models.ForeignKey(Faculty,on_delete=models.CASCADE,null=True)
+    faculty = models.ForeignKey(Faculty,on_delete=models.CASCADE,null=True)
+    address = models.TextField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
+    updated_at = models. DateTimeField(auto_now_add=True,null=True)
+
 
 
 class Student(models.Model):
