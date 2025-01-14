@@ -44,6 +44,8 @@ class Department(models.Model):
     description = models.TextField(blank=True, null=True)
     courses = models.ManyToManyField(Course,blank=True)
     photo = models.ImageField(upload_to="department_photos/", blank=True, null=True)
+    hod = models.OneToOneField('CustomUser', on_delete=models.SET_NULL, null=True, blank=True, related_name='department_hod')
+
 
 
 
@@ -75,7 +77,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     phone = models.IntegerField(blank=True, null=True)
     dob = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')], null=True, blank=True)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True,related_name='department_users')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
     batch = models.ForeignKey(Batch, on_delete=models.CASCADE, null=True, blank=True)
     photo = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
@@ -106,6 +108,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             self.batch = None
         super().save(*args, **kwargs)
 
+
+class Subject(models.Model):
+    name = models.CharField(max_length=120)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class Faculty(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(CustomUser,on_delete=models.CASCADE)
@@ -117,6 +128,8 @@ class Faculty(models.Model):
     courses = models.ManyToManyField(Course,blank=True)
     batches = models.ManyToManyField(Batch,blank=True)
     photo = models.ImageField(upload_to='faculty_photos/', blank=True, null=True)
+    subjects = models.ManyToManyField(Subject, related_name='faculties')
+
 
     # def __str__(self):
     #     return self.name 
@@ -125,7 +138,7 @@ class HOD(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     name = models.CharField(max_length=100,null=True,blank=True)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE,related_name='hod_department')
     courses = models.ManyToManyField(Course,blank=True)
     batches = models.ManyToManyField(Batch,blank=True)
     photo = models.ImageField(upload_to='hod_photos/', blank=True, null=True)
@@ -176,12 +189,6 @@ class Note(models.Model):
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
-class Subject(models.Model):
-    name = models.CharField(max_length=120)
-    faculty = models.ForeignKey(Faculty,on_delete=models.CASCADE,)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    updated_at = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
 
 class FacultyAttendance(models.Model):
     faculty = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'faculty'})

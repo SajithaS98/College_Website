@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     UserRegistrationView,UserLoginView,ProfileView,VerifyOTPView,ResendOTPView,FacultyListCreateView,FacultyUpdateDeleteView,
     StudentListCreateView,StudentUpdateDeleteView,CourseListView,DepartmentListView,DepartmentView,StudentAttendanceView,FacultyAttendanceView,
-    StudentAttendanceReportView,FacultyAttendanceReportView,HODListCreateView,HODUpdateDeleteView  
+    StudentAttendanceReportView,FacultyAttendanceReportView,HODListCreateView,HODUpdateDeleteView,HODDashboardView  
 )
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 
@@ -11,7 +11,10 @@ urlpatterns = [
     path('resend_otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('verify_otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('login/', UserLoginView.as_view(), name='user-login'),
-    
+
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
     path('profile/<int:pk>/', ProfileView.as_view(), name='profile-detail'),
 
     path('hodlist/', HODListCreateView.as_view(), name='hodlist'),
@@ -38,6 +41,6 @@ urlpatterns = [
     path('faculty-attendance-reports/', FacultyAttendanceReportView.as_view(), name='faculty-attendance-report-list'),
     path('student-attendance-reports/', StudentAttendanceReportView.as_view(), name='student-attendance-report-list'),
 
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('hod-dashboard/', HODDashboardView.as_view(), name='hod-dashboard'),
+
 ]
