@@ -3,7 +3,8 @@ from .views import (
     UserRegistrationView,UserLoginView,ProfileView,VerifyOTPView,ResendOTPView,FacultyListCreateView,FacultyUpdateDeleteView,
     StudentListCreateView,StudentUpdateDeleteView,CourseListView,DepartmentListView,DepartmentView,StudentAttendanceView,FacultyAttendanceView,
     StudentAttendanceReportView,FacultyAttendanceReportView,HODListCreateView,HODUpdateDeleteView,HODDashboardView,SubjectsListView,SubjectsDetailView,
-    BatchListView,BatchDetailView,AssignmentListView,AssignmentDetailView,StudentAssignmentListView,SubmissionListCreateView,SubmissionDeleteView 
+    BatchListView,BatchDetailView,AssignmentListView,AssignmentDetailView,StudentAssignmentListView,SubmissionListCreateView,SubmissionDeleteView,
+    NoteListCreateView,NoteDetailView,StudentNoteListView 
 )
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 
@@ -54,6 +55,11 @@ urlpatterns = [
 
     path('assignments/<int:assignment_id>/submissions/', SubmissionListCreateView.as_view(), name='submission-list-create'),
     path('assignments/<int:assignment_id>/submissions/<int:submission_id>/', SubmissionDeleteView.as_view(), name='submission-delete'),
+
+    path('notes/', NoteListCreateView.as_view(), name='note-list-create'),
+    path('notes/<int:pk>/', NoteDetailView.as_view(), name='note-detail'),
+    path('notes/course/<int:course_id>/', StudentNoteListView.as_view(), name='student-note-list'),
+
 
     path('hod-dashboard/', HODDashboardView.as_view(), name='hod-dashboard'),
 
