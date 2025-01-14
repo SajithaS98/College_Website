@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 
 
 
+
 CustomUser = get_user_model()
 
 
@@ -372,3 +373,17 @@ class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = '__all__'
+
+
+class BatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Batch
+        fields = ['id', 'batch_name', 'course', 'start_year', 'end_year']
+
+    def validate(self, data):
+        """
+        Ensure that start year is before end year
+        """
+        if data['start_year'] > data['end_year']:
+            raise serializers.ValidationError("Start year cannot be after end year.")
+        return data

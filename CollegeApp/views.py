@@ -7,10 +7,11 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from .serializers import(
     HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
-    AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer,SubjectSerializer
+    AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer,SubjectSerializer,
+    BatchSerializer
 )
 from .models import (HOD,Faculty,Student,Course,Department,CustomUser,Attendance,StudentAttendance,FacultyAttendance,StudentAttendanceReport,
-                     FacultyAttendanceReport,Subject
+                     FacultyAttendanceReport,Subject,Batch
 )
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
@@ -704,6 +705,55 @@ class SubjectsDetailView(APIView):
         subject.delete()
         return Response({"message": "Subject deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
+
+
+class BatchListView(APIView):
+    permission_classes = [IsHOD]
+
+    def get(self, request, *args, **kwargs):
+        batches = Batch.objects.all()
+        serializer = BatchSerializer(batches, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        serializer = BatchSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class BatchDetailView(APIView):
+    permission_classes = [IsHOD]
+
+    def get(self, request, pk, *args, **kwargs):
+        try:
+            batch = Batch.objects.get(pk=pk)
+        except Batch.DoesNotExist:
+            return Response({"error": "Batch not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = BatchSerializer(batch)
+        return Response(serializer.data)
+
+    def put(self, request, pk, *args, **kwargs):
+        try:
+            batch = Batch.objects.get(pk=pk)
+        except Batch.DoesNotExist:
+            return Response({"error": "Batch not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = BatchSerializer(batch, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, *args, **kwargs):
+        try:
+            batch = Batch.objects.get(pk=pk)
+        except Batch.DoesNotExist:
+            return Response({"error": "Batch not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        batch.delete()
+        return Response({"message": "Batch deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
     
 
