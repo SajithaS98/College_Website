@@ -57,8 +57,8 @@ class Department(models.Model):
 class Batch(models.Model):
     batch_name = models.CharField(max_length=150,null=True,blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    start_date = models.IntegerField(blank=True, null=True)
-    end_date = models.IntegerField(blank=True, null=True)
+    start_year = models.IntegerField(blank=True, null=True)
+    end_year = models.IntegerField(blank=True, null=True)
 
     # def __str__(self):
     #     return self.batch_name
