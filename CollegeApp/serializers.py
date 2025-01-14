@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (CustomUser,HOD,Faculty,Student,Course,Batch,Department,Attendance,StudentAttendance,FacultyAttendance,FacultyAttendanceReport,
-                     StudentAttendanceReport,Subject
+                     StudentAttendanceReport,Subject,Assignment
 )
 from rest_framework.exceptions import ValidationError
 
@@ -387,3 +387,9 @@ class BatchSerializer(serializers.ModelSerializer):
         if data['start_year'] > data['end_year']:
             raise serializers.ValidationError("Start year cannot be after end year.")
         return data
+    
+
+class AssignmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assignment
+        fields = '__all__'
