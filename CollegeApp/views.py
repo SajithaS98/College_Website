@@ -8,7 +8,7 @@ from rest_framework.authtoken.models import Token
 from .serializers import(
     HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
     AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer,SubjectSerializer,
-    BatchSerializer,AssignmentSerializer,SubmissionSerializer
+    BatchSerializer,AssignmentSerializer,SubmissionSerializer,NoteSerializer
 )
 from .models import (HOD,Faculty,Student,Course,Department,CustomUser,Attendance,StudentAttendance,FacultyAttendance,StudentAttendanceReport,
                      FacultyAttendanceReport,Subject,Batch,Assignment,Submission,Notification,ExamResult,Note
@@ -847,6 +847,53 @@ class SubmissionDeleteView(APIView):
 
         submission.delete()
         return Response({"message": "Submission deleted successfully."}, status=status.HTTP_200_OK)
+
+
+class NoteListCreateView(APIView):
+    permission_classes = [IsHOD | IsFaculty]
+
+    def get(self, request):
+        notes = Note.objects.all()
+        serializer = NoteSerializer(notes, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = NoteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class NoteDetailView(APIView):
+    permission_classes = [IsHOD | Faculty]
+
+    def get(self, request, pk):
+        note = get_object_or_404(Note, pk=pk)
+        serializer = NoteSerializer(note)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        note = get_object_or_404(Note, pk=pk)
+        serializer = NoteSerializer(note, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        note = get_object_or_404(Note, pk=pk)
+        note.delete()
+        return Response({"message": "Note deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+class StudentNoteListView(APIView):
+    permission_classes = [IsStudent]
+
+    def get(self, request, course_id):
+        # Fetch notes for the authenticated student's course
+        notes = Note.objects.filter(course_id=course_id)
+        serializer = NoteSerializer(notes, many=True)
+        return Response(serializer.data)
 
 
 class HODDashboardView(APIView):
