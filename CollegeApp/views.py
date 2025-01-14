@@ -655,6 +655,58 @@ class StudentAttendanceReportView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
+
+class SubjectsListView(APIView):
+    permission_classes = [IsHOD]
+
+    def get(self, request, *args, **kwargs):
+        subjects = Subject.objects.all()
+        serializer = SubjectSerializer(subjects, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        serializer = SubjectSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class SubjectsDetailView(APIView):
+    permission_classes = [IsHOD]
+
+    def get_object(self, pk):
+        try:
+            return Subject.objects.get(pk=pk)
+        except Subject.DoesNotExist:
+            return None
+
+    def get(self, request, pk, *args, **kwargs):
+        subject = self.get_object(pk)
+        if subject is None:
+            return Response({"error": "Subject not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = SubjectSerializer(subject)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk, *args, **kwargs):
+        subject = self.get_object(pk)
+        if subject is None:
+            return Response({"error": "Subject not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = SubjectSerializer(subject, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, *args, **kwargs):
+        subject = self.get_object(pk)
+        if subject is None:
+            return Response({"error": "Subject not found."}, status=status.HTTP_404_NOT_FOUND)
+        subject.delete()
+        return Response({"message": "Subject deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
+    
+
 class HODDashboardView(APIView):
     permission_classes = [IsHOD]  # Ensure only HOD can access this view
 

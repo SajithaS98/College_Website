@@ -110,9 +110,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 class Subject(models.Model):
-    name = models.CharField(max_length=120)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=250)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE,related_name="primary_subjects")
     department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True)
+    Course_id= models.ForeignKey(Course,on_delete=models.CASCADE,related_name="secondary_subjects",null=True)
+    staff_id = models.ForeignKey('Faculty',on_delete=models.CASCADE,null=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

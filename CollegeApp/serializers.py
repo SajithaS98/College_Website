@@ -371,4 +371,4 @@ class StudentAttendanceReportSerializer(serializers.ModelSerializer):
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'department']
+        fields = '__all__'
