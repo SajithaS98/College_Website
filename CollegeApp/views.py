@@ -8,7 +8,7 @@ from rest_framework.authtoken.models import Token
 from .serializers import(
     HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
     AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer,SubjectSerializer,
-    BatchSerializer,AssignmentSerializer,SubmissionSerializer,NoteSerializer
+    BatchSerializer,AssignmentSerializer,SubmissionSerializer,NoteSerializer,NotificationSerializer
 )
 from .models import (HOD,Faculty,Student,Course,Department,CustomUser,Attendance,StudentAttendance,FacultyAttendance,StudentAttendanceReport,
                      FacultyAttendanceReport,Subject,Batch,Assignment,Submission,Notification,ExamResult,Note
@@ -894,6 +894,49 @@ class StudentNoteListView(APIView):
         notes = Note.objects.filter(course_id=course_id)
         serializer = NoteSerializer(notes, many=True)
         return Response(serializer.data)
+
+class NotificationList(APIView):
+    permission_classes =[IsHOD]
+
+    def get(self,request):
+        notifications = Notification.objects.all()
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+    
+    def post(self,request):
+        serializer = NotificationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class NotificationDetail(APIView):
+    permission_classes = [IsHOD]
+
+    def get(self,request,pk):
+        notification = get_object_or_404(Notification,pk=pk)
+        serializer = NotificationSerializer(notification)
+        return Response(serializer.data)
+    
+    def put(self,request,pk):
+        notification = get_object_or_404(Notification,pk=pk)
+        serializer = NotificationSerializer(notification,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self,request,pk):
+        notification = get_object_or_404(Notification,pk=pk)
+        notification.delete()
+        return Response({"message":"Notification deleted successfully"},status= status.HTTP_204_NO_CONTENT)
+
+class Notificationview(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request):
+        notification=Notification.objects.all()
+        serializer = NotificationSerializer(notification,many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class HODDashboardView(APIView):

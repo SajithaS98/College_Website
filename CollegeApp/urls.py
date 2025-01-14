@@ -4,7 +4,7 @@ from .views import (
     StudentListCreateView,StudentUpdateDeleteView,CourseListView,DepartmentListView,DepartmentView,StudentAttendanceView,FacultyAttendanceView,
     StudentAttendanceReportView,FacultyAttendanceReportView,HODListCreateView,HODUpdateDeleteView,HODDashboardView,SubjectsListView,SubjectsDetailView,
     BatchListView,BatchDetailView,AssignmentListView,AssignmentDetailView,StudentAssignmentListView,SubmissionListCreateView,SubmissionDeleteView,
-    NoteListCreateView,NoteDetailView,StudentNoteListView 
+    NoteListCreateView,NoteDetailView,StudentNoteListView,NotificationList,NotificationDetail,Notificationview 
 )
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 
@@ -60,6 +60,9 @@ urlpatterns = [
     path('notes/<int:pk>/', NoteDetailView.as_view(), name='note-detail'),
     path('notes/course/<int:course_id>/', StudentNoteListView.as_view(), name='student-note-list'),
 
+    path('notifications/', NotificationList.as_view(), name='notification-list'),
+    path('notifications/<int:pk>/', NotificationDetail.as_view(), name='notification-detail'),
+    path('notifications/view/', Notificationview.as_view(), name='notification-view'),
 
     path('hod-dashboard/', HODDashboardView.as_view(), name='hod-dashboard'),
 
