@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (CustomUser,HOD,Faculty,Student,Course,Batch,Department,Attendance,StudentAttendance,FacultyAttendance,FacultyAttendanceReport,
-                     StudentAttendanceReport,Subject,Assignment
+                     StudentAttendanceReport,Subject,Assignment,Submission,Notification,ExamResult,Note
 )
 from rest_framework.exceptions import ValidationError
 
@@ -393,3 +393,9 @@ class AssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
         fields = '__all__'
+
+
+class SubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Submission
+        fields = ['id', 'assignment', 'student', 'file', 'submitted_at']

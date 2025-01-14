@@ -8,10 +8,10 @@ from rest_framework.authtoken.models import Token
 from .serializers import(
     HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
     AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer,SubjectSerializer,
-    BatchSerializer,AssignmentSerializer
+    BatchSerializer,AssignmentSerializer,SubmissionSerializer
 )
 from .models import (HOD,Faculty,Student,Course,Department,CustomUser,Attendance,StudentAttendance,FacultyAttendance,StudentAttendanceReport,
-                     FacultyAttendanceReport,Subject,Batch,Assignment
+                     FacultyAttendanceReport,Subject,Batch,Assignment,Submission,Notification,ExamResult,Note
 )
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
@@ -812,7 +812,41 @@ class StudentAssignmentListView(APIView):
         serializer = AssignmentSerializer(assignments, many=True)
         return Response(serializer.data)
 
+class SubmissionListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request, assignment_id):
+        student = get_object_or_404(Student, user=request.user)
+        submissions = Submission.objects.filter(assignment_id=assignment_id, student=student)
+        serializer = SubmissionSerializer(submissions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, assignment_id):
+        student = get_object_or_404(Student, user=request.user)
+        data = request.data.copy()
+        data['assignment'] = assignment_id
+        data['student'] = student.id 
+
+        serializer = SubmissionSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SubmissionDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, assignment_id, submission_id):
+        student = get_object_or_404(Student, user=request.user)
+        submission = get_object_or_404(Submission, id=submission_id, student=student, assignment_id=assignment_id)
+
+        if submission.student != student:
+            return Response(
+                {"error": "You do not have permission to delete this submission."},status=status.HTTP_403_FORBIDDEN,)
+
+        submission.delete()
+        return Response({"message": "Submission deleted successfully."}, status=status.HTTP_200_OK)
 
 
 class HODDashboardView(APIView):
