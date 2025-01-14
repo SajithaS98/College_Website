@@ -8,10 +8,10 @@ from rest_framework.authtoken.models import Token
 from .serializers import(
     HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
     AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer,SubjectSerializer,
-    BatchSerializer
+    BatchSerializer,AssignmentSerializer
 )
 from .models import (HOD,Faculty,Student,Course,Department,CustomUser,Attendance,StudentAttendance,FacultyAttendance,StudentAttendanceReport,
-                     FacultyAttendanceReport,Subject,Batch
+                     FacultyAttendanceReport,Subject,Batch,Assignment
 )
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
@@ -32,7 +32,7 @@ from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import ListAPIView,get_object_or_404
 
-from .permissions import IsAdminOrHOD,IsHOD,IsFaculty,IsHODOrFaculty,IsAdmin,CanUpdateProfile
+from .permissions import IsAdminOrHOD,IsHOD,IsFaculty,IsHODOrFaculty,IsAdmin,CanUpdateProfile,IsStudent
 
 
 
@@ -755,7 +755,65 @@ class BatchDetailView(APIView):
         batch.delete()
         return Response({"message": "Batch deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
+
+
+class AssignmentListView(APIView):
+    permission_classes = [IsFaculty | IsHOD]  
+    def get(self, request, *args, **kwargs):
+        assignments = Assignment.objects.all()  
+        serializer = AssignmentSerializer(assignments, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        serializer = AssignmentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AssignmentDetailView(APIView):
+    permission_classes = [IsFaculty | IsHOD]
+
+    def get(self, request, pk, *args, **kwargs):
+        try:
+            assignment = Assignment.objects.get(pk=pk)
+        except Assignment.DoesNotExist:
+            return Response({"error": "Assignment not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = AssignmentSerializer(assignment)
+        return Response(serializer.data)
+
+    def put(self, request, pk, *args, **kwargs):
+        try:
+            assignment = Assignment.objects.get(pk=pk)
+        except Assignment.DoesNotExist:
+            return Response({"error": "Assignment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AssignmentSerializer(assignment, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, *args, **kwargs):
+        try:
+            assignment = Assignment.objects.get(pk=pk)
+        except Assignment.DoesNotExist:
+            return Response({"error": "Assignment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        assignment.delete()
+        return Response({"message": "Assignment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
     
+class StudentAssignmentListView(APIView):
+    permission_classes = [IsStudent]
+
+    def get(self, request, batch_id, *args, **kwargs):
+        assignments = Assignment.objects.filter(batch_id=batch_id)
+        serializer = AssignmentSerializer(assignments, many=True)
+        return Response(serializer.data)
+
+
+
 
 class HODDashboardView(APIView):
     permission_classes = [IsHOD]  # Ensure only HOD can access this view

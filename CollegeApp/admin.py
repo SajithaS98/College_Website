@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (Course,Batch,Student,HOD,Faculty,CustomUser,Department,Attendance,Subject,FacultyAttendance,StudentAttendance,
-                     FacultyAttendanceReport,StudentAttendanceReport
+                     FacultyAttendanceReport,StudentAttendanceReport,Assignment,Submission
 )
     
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -26,4 +26,6 @@ admin.site.register(StudentAttendance)
 admin.site.register(StudentAttendanceReport)
 admin.site.register(FacultyAttendanceReport)
 admin.site.register(Subject)
+admin.site.register(Assignment)
+
 admin.site.register(CustomUser)
