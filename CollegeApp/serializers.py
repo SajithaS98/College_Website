@@ -405,3 +405,9 @@ class NoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Note
         fields = ['id', 'title', 'file', 'faculty', 'course']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title','message']

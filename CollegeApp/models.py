@@ -184,7 +184,11 @@ class Notification(models.Model):
 class ExamResult(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    score = models.DecimalField(max_digits=5, decimal_places=2,null=True,blank=True)
+    department = models.ForeignKey(Department,on_delete=models.CASCADE,null=True)
+    batch = models.ForeignKey(Batch,on_delete=models.CASCADE,null=True)
+    subject = models.ForeignKey(Subject,on_delete=models.CASCADE,null=True)
+    score = models.DecimalField(max_digits=5, decimal_places=1,null=True,blank=True)
+    max_score = models.DecimalField(max_digits=5,decimal_places=0,null=True)
 
 class Note(models.Model):
     title = models.CharField(max_length=100,null=True,blank=True)
