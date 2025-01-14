@@ -7,10 +7,10 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from .serializers import(
     HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
-    AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer
+    AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer,SubjectSerializer
 )
 from .models import (HOD,Faculty,Student,Course,Department,CustomUser,Attendance,StudentAttendance,FacultyAttendance,StudentAttendanceReport,
-                     FacultyAttendanceReport
+                     FacultyAttendanceReport,Subject
 )
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
@@ -653,6 +653,32 @@ class StudentAttendanceReportView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class HODDashboardView(APIView):
+    permission_classes = [IsHOD]  # Ensure only HOD can access this view
+
+    def get(self, request):
+        # Get the HOD's department
+        hod = request.user
+        department = hod.department  # Assuming HOD has a department field
+
+        # Get subjects, faculties, and students in the HOD's department
+        subjects = Subject.objects.filter(department=department)
+        faculties = Faculty.objects.filter(department=department)
+        students = Student.objects.filter(department=department)
+
+        # Serialize the data
+        subject_serializer = SubjectSerializer(subjects, many=True)
+        faculty_serializer = FacultySerializer(faculties, many=True)
+        student_serializer = StudentSerializer(students, many=True)
+
+        # Return the response
+        return Response({
+            "subjects": subject_serializer.data,
+            "faculties": faculty_serializer.data,
+            "students": student_serializer.data,
+        }, status=status.HTTP_200_OK)
 
 
         

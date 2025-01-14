@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (CustomUser,HOD,Faculty,Student,Course,Batch,Department,Attendance,StudentAttendance,FacultyAttendance,FacultyAttendanceReport,
-                     StudentAttendanceReport
+                     StudentAttendanceReport,Subject
 )
 from rest_framework.exceptions import ValidationError
 
@@ -366,3 +366,9 @@ class StudentAttendanceReportSerializer(serializers.ModelSerializer):
         model = StudentAttendanceReport
         fields = ['id', 'student', 'attendance', 'status', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
+
+
+class SubjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subject
+        fields = ['id', 'name', 'department']
