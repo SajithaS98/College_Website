@@ -6,9 +6,9 @@ from rest_framework.permissions import IsAuthenticated,AllowAny
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from .serializers import(
-    HODSerializer,FacultySerializer,StudentSerializer,BaseUserSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
+    HODSerializer,FacultySerializer,StudentSerializer,CourseSerializer,DepartmentSerializer,CustomUserSerializer,
     AttendanceSerializer,FacultyAttendanceSerializer,StudentAttendanceReportSerializer,FacultyAttendanceReportSerializer,SubjectSerializer,
-    BatchSerializer,AssignmentSerializer,SubmissionSerializer,NoteSerializer,NotificationSerializer
+    BatchSerializer,AssignmentSerializer,SubmissionSerializer,NoteSerializer,NotificationSerializer,ExamResultSerializer
 )
 from .models import (HOD,Faculty,Student,Course,Department,CustomUser,Attendance,StudentAttendance,FacultyAttendance,StudentAttendanceReport,
                      FacultyAttendanceReport,Subject,Batch,Assignment,Submission,Notification,ExamResult,Note
@@ -937,8 +937,56 @@ class Notificationview(APIView):
         notification=Notification.objects.all()
         serializer = NotificationSerializer(notification,many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
 
+class ExamResultListView(APIView):
+    permission_classes = [IsHOD | IsFaculty]
+    def get(self,request):
+        examresult=ExamResult.objects.all()
+        serializer=ExamResultSerializer(examresult,many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def post(self,request):
+        serializer=ExamResultSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+class ExamResultDetailView(APIView):
+    permission_classes=[IsHOD | IsFaculty]
+    def get(self,request,pk):
+        examresult = get_object_or_404(ExamResult,pk=pk)
+        serializer = ExamResultSerializer(examresult)
+        return Response(serializer.data)
+    
+    def put(self,request,pk):
+        examresult = get_object_or_404(ExamResult,pk=pk)
+        serializer = ExamResultSerializer(examresult,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self,request,pk):
+        examresult = get_object_or_404(ExamResult,pk=pk)
+        examresult.delete()
+        return Response({"message":"exam result deleted successfully"},status=status.HTTP_204_NO_CONTENT)
+    
+class ExamResultView(APIView):
+    def get(self, request):
+        try:
+            # Example logic to fetch exam results
+            exam_results = ExamResult.objects.all()
+            if not exam_results.exists():
+                return Response({"message": "No exam results found."}, status=status.HTTP_404_NOT_FOUND)
 
+            data = ExamResultSerializer(exam_results, many=True).data
+            return Response({"results": data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
 class HODDashboardView(APIView):
     permission_classes = [IsHOD]  # Ensure only HOD can access this view
 

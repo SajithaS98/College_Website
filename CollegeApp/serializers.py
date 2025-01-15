@@ -11,20 +11,20 @@ from rest_framework.exceptions import ValidationError
 CustomUser = get_user_model()
 
 
-class BaseUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ["email","password","role","full_name","phone","dob","gender",]
-        extra_kwargs = {
-            "password": {"write_only": True}
-        }
+# class BaseUserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = CustomUser
+#         fields = ["email","password","role","full_name","phone","dob","gender",]
+#         extra_kwargs = {
+#             "password": {"write_only": True}
+#         }
 
-    def create(self, validated_data):
-        password = validated_data.pop("password")
-        user = CustomUser.objects.create_user(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
+#     def create(self, validated_data):
+#         password = validated_data.pop("password")
+#         user = CustomUser.objects.create_user(**validated_data)
+#         user.set_password(password)
+#         user.save()
+#         return user
 
 
 class HODSerializer(serializers.ModelSerializer):
@@ -177,7 +177,7 @@ class StudentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Student
-        fields = ["email", "password", "full_name", "phone", "dob", "gender", "department", "course", "batch", "role"]
+        fields = ["id","email", "password", "full_name", "phone", "dob", "gender", "department", "course", "batch", "role"]
 
     def create(self, validated_data):
         user_data = validated_data.pop("user")
@@ -411,3 +411,15 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'title','message']
+
+class ExamResultSerializer(serializers.ModelSerializer):
+    student_name = serializers.ReadOnlyField(source='student.name')
+    course_name = serializers.ReadOnlyField(source='course.course_name')
+    department_name = serializers.ReadOnlyField(source='department.department_name')
+    batch_name = serializers.ReadOnlyField(source='batch.batch_name')
+    sub_name = serializers.ReadOnlyField(source='subject.sub_name')
+
+    class Meta:
+        model = ExamResult
+        fields = ['id','student', 'student_name','course', 'course_name','department', 'department_name',
+                  'batch', 'batch_name','score','max_score','subject', 'sub_name']
