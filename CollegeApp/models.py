@@ -178,7 +178,7 @@ class Submission(models.Model):
 class Notification(models.Model):
     title = models.CharField(max_length=100,null=True,blank=True)
     message = models.TextField(max_length=300,null=True,blank=True)
-    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE,null=True)
     students = models.ManyToManyField(Student,blank=True)
 
 class ExamResult(models.Model):
